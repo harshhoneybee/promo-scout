@@ -1,58 +1,68 @@
-# Build status — 8 November 2026
+# Build status - 8 November 2026
 
-## Verified
+## Completed full-pack AI run
 
-- Dependency-free Python 3.10+ CLI and local browser server implemented.
-- 62 unit tests passed: 12 parser, 19 engine/provider-contract, 6 HTTP diagnostic, 9 model-output and 16 retry/checkpoint tests.
-- All 50 supplied episodes parsed: 3,727 timed events; no scene-bound warnings.
-- Offline baseline processed all 50 episodes without errors: 174 valid candidates, 10 selected after overlap suppression; 22 episodes had no baseline candidate. These are mechanical results, not editorial accuracy or recall measurements.
-- HTTP smoke test returned 200 for homepage, configuration, and synthetic-demo analysis (4 candidates, 1 distinct selected clip).
-- Frontend JavaScript passed a syntax check.
-- Source content and full-pack outputs excluded from the repository.
-- User screenshots confirm a live synthetic Groq GPT-OSS 120B run: 3 candidates proposed, 0 mechanically rejected and 2 shortlisted in 2.3 seconds. Layout and candidate rendering are visible; download contents have not yet been inspected.
-- Bounded HTTP 429 retry and checkpoint resume tested with simulated provider responses. A local HTTP integration test ran the demo twice with one mocked provider call, confirming reuse through the browser API. Browser JavaScript syntax passed. Live full-pack quota handling is not yet verified.
+The final user export confirms these results with Groq `openai/gpt-oss-120b` and prompt version 1.0:
 
-## Not yet verified
+| Measure | Verified result |
+|---|---:|
+| Episodes successfully analysed | 50 / 50 |
+| Timed source events | 3,727 |
+| Candidates proposed | 100 |
+| Candidates passing mechanical checks | 54 |
+| Candidates rejected | 46 |
+| Distinct promos shortlisted | 10 |
+| Responses reused in final resume | 41 |
+| Episodes not attempted / remaining errors | 0 / 0 |
 
-- Completion of Episodes 38–50 and full-pack editorial evaluation remain pending.
-- Visual browser testing could not run in the build environment: Chromium was blocked by its socket restrictions. Review layout and export buttons in your local browser.
-- No measured audience results; no claim of CTR uplift or comprehensive promo recall.
-- Final human editorial shortlist, two-page solution PDF and narrated walkthrough remain to be completed.
+Replaying validation and ranking on all 100 recorded proposals against the original input reproduced the 54 valid candidates, 46 rejections and top 10. All 10 CSV rows matched the JSON shortlist. The confidential input and unedited outputs are excluded from this repository.
 
-## Honest failure examples
+The rejection reasons were 37 duration violations, 10 cuts through spoken dialogue and one ending-evidence violation. These are 48 reason occurrences across 46 candidates, because two candidates had multiple reasons. Of the 37 duration violations, 35 were shorter than 20 seconds and two were longer than 60 seconds. One episode explicitly returned no candidates; ten episodes had no mechanically valid candidate. Neither result measures promo recall.
 
-The offline baseline can select a reassuring or resolved statement as its ending because it contains cue words. The candidate is timestamp-valid but does not establish a meaningful cliffhanger. This is a rule-based baseline failure, not evidence of a live model error.
+## Implementation and verification
 
-During AI-assisted implementation, code review found duration validation rounded before checking limits. That could accept 19.996s or 60.004s as valid. The fix compares raw durations, and regression tests cover both edges. This is a real example to describe in the AI-tool-use disclosure.
+- Dependency-free Python 3.10+ CLI and local browser server.
+- 62 passing unit tests: 12 parser, 19 engine/provider-contract, six HTTP diagnostic, nine model-output and 16 retry/checkpoint tests.
+- All 50 supplied episodes parsed without scene-bound warnings.
+- Offline baseline also processed all 50 episodes: 174 valid candidates, ten selected after overlap suppression and 22 episodes without a baseline candidate. These are mechanical results, not a controlled quality comparison.
+- HTTP smoke checks passed for the homepage, configuration and synthetic-demo analysis. Frontend JavaScript passed a syntax check.
+- A local mocked HTTP integration test ran the demo twice with one provider call, confirming browser API checkpoint reuse.
+- User screenshots show the completed live browser workflow. The final downloaded JSON and CSV were inspected. Automated visual browser tests were unavailable in the build environment.
+- Final response envelopes and checkpoint timestamps are preserved in the full-run JSON; checkpoint reuse is explicitly labelled.
 
-## Next steps
+## Reliability failures observed and addressed
 
-1. Preserve the successful synthetic demo export and the observed editorial error.
-2. Update locally to include rate-limit retries and checkpoint resume.
-3. Run all 50 episodes in AI mode, retaining unedited output and any episode errors.
-4. Review top 10, a sample of lower-ranked candidates, and some abstained episodes using QUALITY_REVIEW.md. Record actual judgments and changes separately from raw outputs.
-5. Write the maximum-two-page solution document using only verified claims and your own decisions. Record a short walkthrough in your own voice.
+The early synthetic response exhausted a 1,800-token completion budget: its final content was empty and 1,798 tokens were used for reasoning. The Groq GPT-OSS adapter now requests low reasoning effort, strict JSON schema output and a 4,096-token completion budget. Truncation is diagnosed before JSON parsing; the original response is retained.
 
-## HTTP diagnostics update
+The initial full-pack run encountered HTTP 413 for one episode and HTTP 429 later in the pack. Compact serialization reduced the measured affected user-message length from 19,491 to 18,069 characters without changing source values or cache identity; a later export confirmed that episode succeeded. Persistent rate limits stop new requests visibly. Bounded retries honor `Retry-After`, with an adjustable cumulative wait budget. Saved completed responses are reused when the same input and settings are run again.
 
-The API client now identifies itself as PromoScout and exposes only predefined, safe error categories for permission denials, gateway 1010, authentication and rate limits. Provider error text and secrets are not echoed. Failed episodes are highlighted at the top of the UI rather than looking like a successful empty shortlist. These changes are regression-tested; the subsequent user-run synthetic demo confirms the live connection works.
+Later connection failures left nine episodes unfinished. The final resumed export reused 41 responses and completed the remaining nine without errors. Its elapsed 8,278.501 seconds includes quota waiting and is not a fresh-run inference-time benchmark. The successful run verifies recovery through resume, not guaranteed provider availability or throughput.
 
-## Verified token-budget failure and fix
+## Token accounting
 
-The user-supplied demo export recorded `finish_reason: length`, empty final content, 1,800 completion tokens and 1,798 reasoning tokens. The default was too small for this reasoning model. The Groq GPT-OSS adapter now requests low reasoning effort, a 4,096-token completion budget and strict structured JSON. It recognizes truncation before attempting JSON parsing and preserves the original response. No reasoning text or private run file was copied into this repository. The actual captured response was replayed locally to verify the clearer error. The subsequent user screenshots confirm a successful live synthetic rerun.
+Across the 50 preserved successful response envelopes:
 
-## Observed live model error
+- Input: 228,503 tokens.
+- Output: 35,168 tokens.
+- Total: 263,671 tokens.
 
-The user screenshots show a selected synthetic clip at 00:00.00–00:56.00 with an 80/100 model score. Its explanation asks whether the lawyer will seize the envelope and claims the struggle is unresolved. The supplied synthetic action at 00:53.00–00:56.00 explicitly says Evelyn snatches it away before he can reach it. That local action is resolved inside the selected clip. Human review rejects this stated cliffhanger even though automated timing checks pass. The 100/100 score on the other clip is also a model judgment, not measured audience performance. No confidential source text is needed to demonstrate this failure.
+These totals count each saved response once. They exclude failed attempts and separate demo runs; reused usage is not a new charge. Actual cost depends on current provider rates, caching and billing. At input/output prices per million tokens, the successful-response estimate is `0.228503 * input_price + 0.035168 * output_price` before cache discounts.
 
-## Partial full-pack AI run and size diagnostics
+## Editorial audit and remaining limits
 
-User screenshots show 35 successful episodes out of 50, 76 proposed candidates, 37 mechanically rejected and 10 shortlisted. Episode 3 received HTTP 413; Episode 37 received persistent HTTP 429; Episodes 38–50 were not attempted after that rate limit. The 35 successful episodes should have local checkpoints with the default configuration; their presence and raw content still need confirmation from the user export.
+An AI-assisted source audit reviewed all ten shortlisted cuts, five non-shortlisted valid candidates sampled across their score ranking, and two episodes with no valid output. It found missing-context and weak-opening problems despite perfect model scores. Nine of the ten shortlisted cuts scored 100/100; their order partly reflects the shorter-duration tie-break. This sample is not a human acceptance study, a recall benchmark or evidence of advertising performance.
 
-Request serialization now removes JSON formatting whitespace without changing source values, event IDs, timestamps, generation settings or the logical checkpoint identity. For the Episode 3 input, the user-message size decreases from 19,491 to 18,069 characters. This is a measured size reduction, not a live confirmation that the provider will accept the request. HTTP 413 now explains the size problem, and persistent HTTP 429 reports the numeric Retry-After delay when supplied. Tests verify lossless serialization, retained checkpoint compatibility and safe diagnostics.
+A separately documented review may change the editorial order, but original model outputs must remain unchanged. The submitter reviewed the two-page solution brief, which has been finalized separately with the private raw-output archive. Actual-footage validation remains pending. Confidential source-derived recommendations are not published here.
 
-## Confirmed resume and longer quota waits
+## Concrete AI error examples
 
-The next user export confirmed that request compaction resolved Episode 3: it returned 3 candidates, of which 2 passed mechanical validation. It also confirmed 35 previous responses were reused unchanged. The following export completed Episode 37 and reused 36 responses; 37 episodes now have saved checkpoints, with 82 proposals, 42 valid candidates, 40 rejected and 10 shortlisted.
+In the public synthetic demo, a selected 00:00.00-00:56.00 clip scored 80/100 and described the lawyer reaching for an envelope as unresolved. The source action at 00:53.00-00:56.00 says Evelyn snatches it away before he can reach it. The claimed local struggle is resolved inside the clip. This source comparison was AI-assisted and is not a recorded human-review result.
 
-Episode 38 returned HTTP 429 with a 299-second Retry-After. The previous 120-second wait budget forced unnecessary manual restarts. The default is now one hour of cumulative waiting per uncached episode, bounded to two retries and configurable through PROMO_MAX_RATE_WAIT_SECONDS. Each wait is printed to the terminal. This honors provider limits; it does not accelerate quota refill. Existing checkpoint keys and model generation settings are unchanged. The observed 299-second case and cumulative wait cap pass simulated tests; a live resumed run using the longer wait setting is still pending.
+During implementation review, duration validation was found to round before checking limits. That could accept 19.996-second or 60.004-second clips. The implementation now checks raw durations, and regression tests cover both edges.
+
+## Remaining submission steps
+
+1. Review the proposed editorial choices against the actual footage when available and record personal judgments separately.
+2. Use the finalized two-page solution document and its AI-assistance disclosure.
+3. Supply the prototype link and unedited full-input outputs through the authorized assignment route; keep confidential content out of the public repository.
+4. Optionally record a short walkthrough in the submitter's own voice. Do not claim measured audience results or time savings without a controlled evaluation.

@@ -3,7 +3,7 @@
 A runnable screenplay-to-promo prototype for **Problem 1: Find the Promos**.
 Upload timestamped scripts, inspect ranked 20–60 second continuous clips, and export exact episode cuts with their source evidence.
 
-**Status:** offline baseline tested on all 50 assignment episodes. User screenshots confirm a successful live Groq GPT-OSS 120B synthetic run: 3 proposed candidates and 2 shortlisted. Human review found a false cliffhanger in one selected clip; see the review notes. User-run exports now confirm 37 of 50 episodes completed with 37 saved checkpoints. Episode 3 succeeded after request compaction; Episode 38 is currently rate-limited and Episodes 39–50 have not yet been attempted. The full AI run and final editorial shortlist remain incomplete. 62 automated tests pass, including bounded rate-limit retries and checkpoint resume.
+**Status:** the completed user-run AI export confirms all 50 episodes succeeded: 3,727 timed events, 100 proposals, 54 mechanically valid candidates, 46 rejected and 10 shortlisted. The final resume reused 41 episodes and completed the remaining nine. Validation and ranking were replayed against the original input and reproduced the result; all 10 exported CSV rows matched the JSON shortlist. 62 automated tests pass. These checks establish processing and timing validity, not editorial accuracy. An AI-assisted source audit found narrative issues despite high model scores; final human editorial and footage review remain pending. Confidential scripts and run outputs are excluded from this repository.
 
 ## Start here (Windows)
 

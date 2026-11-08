@@ -66,4 +66,8 @@ Human review establishes shortlist usefulness, not advertising effectiveness. Wi
 
 Evidence: user screenshots of the successful Groq GPT-OSS 120B demo, checked against `examples/demo_episode.txt`. The selected 00:00.00–00:56.00 clip received an 80/100 model score and described the lawyer reaching for the envelope as an unresolved struggle. The 00:53.00–00:56.00 source action states that Evelyn snatches it away before he can reach it.
 
-Human finding: the claimed cliffhanger is resolved inside the clip. Reject this rationale/cut for the proposed ending; keep the original output unchanged in the exported run. Timing validation does not establish narrative correctness. The remaining demo candidates and full-pack AI results still require review.
+Source comparison (AI-assisted): the claimed cliffhanger is resolved inside the clip. Reject this rationale/cut for the proposed ending; keep the original output unchanged in the exported run. Timing validation does not establish narrative correctness. This is not a recorded human acceptance decision.
+
+## Full-pack audit status
+
+The completed run contains 50 successful episodes, 100 proposals, 54 mechanically valid candidates and ten shortlisted cuts. An AI-assisted audit inspected the top ten, five non-shortlisted valid candidates at zero-based positions 0, 10, 20, 30 and 43 in the remaining score-ranked list, and two episodes without valid output. The sample was purposive, not random. It surfaced narrative concerns despite high model scores. Keep confidential review notes separate from this repository, preserve the raw exports, and obtain human editorial and footage review before treating recommendations as approved.
