@@ -84,10 +84,14 @@
       const baseline=meta.mode!=='ai';
       $('run-meta').textContent=(baseline?'Offline baseline · Keyword scoring':'AI narrative review · '+(meta.model||state.model))+' · '+number(meta.elapsed_seconds).toFixed(1)+'s · '+number(meta.event_count).toLocaleString()+' source events';
       $('result-notice').textContent=meta.warning||(baseline?'Baseline results are generated with simple rules and keywords. They are a useful comparison, but can mistake dramatic language for a strong hook or cliffhanger.':'AI suggestions have passed structural checks. Review their story logic and source evidence before selecting a final promo.');
+      const failures=episodes.filter(ep=>ep.error);
+      $('result-notice').classList.toggle('error',failures.length>0);
+      $('coverage-summary').parentElement.open=failures.length>0;
+      if(failures.length) $('result-notice').textContent=failures.length+' of '+episodes.length+' episodes failed to analyze. '+(failures.length===episodes.length?'No successful analysis completed. ':'The shortlist is incomplete. ')+String(failures[0].error);
       $('stats').replaceChildren();
       [[meta.episodes_processed??episodes.length,'Episodes processed'],[counts.proposed??0,'Candidates proposed'],[counts.rejected??0,'Candidates rejected'],[promos.length,'Promos shortlisted']].forEach(([value,label])=>{const box=element('div','stat');box.append(element('b','',value),element('span','',label));$('stats').append(box);});
       $('promos').replaceChildren();
-      if(!promos.length){const box=element('div','panel empty');box.style.minHeight='180px';box.append(element('h3','','No valid promos to shortlist'),element('p','','Review episode coverage below. The tool may have rejected candidates or found no suitable cuts; it does not force a result for every episode.'));$('promos').append(box);}
+      if(!promos.length){const box=element('div','panel empty');box.style.minHeight='180px';box.append(element('h3','',failures.length===episodes.length&&failures.length?'Analysis failed':'No valid promos to shortlist'),element('p','',failures.length?'See the error above and episode details below. A failed request does not mean the script has no good promos.':'Review episode coverage below. The tool may have rejected candidates or found no suitable cuts; it does not force a result for every episode.'));$('promos').append(box);}
       promos.forEach((promo,index)=>$('promos').append(promoCard(promo,index,baseline)));
       $('coverage-summary').textContent='Episode coverage & checks · '+episodes.length+' episodes';$('coverage').replaceChildren();
       episodes.forEach(ep=>{const row=element('tr');const notes=[];if(ep.error)notes.push(String(ep.error));if(Array.isArray(ep.warnings))notes.push(...ep.warnings.map(String));
