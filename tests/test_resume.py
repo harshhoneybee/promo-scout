@@ -110,10 +110,21 @@ class RateLimitTests(unittest.TestCase):
         opener = MagicMock()
         opener.open.side_effect = limited('3600')
         with patch('promo_finder.providers.urllib.request.build_opener', return_value=opener), patch('promo_finder.providers.time.sleep') as sleep:
-            with self.assertRaises(RateLimitError):
+            with self.assertRaisesRegex(RateLimitError, '3600 seconds'):
                 p.complete('prompt', {})
         sleep.assert_not_called()
         self.assertEqual(opener.open.call_count, 1)
+        self.assertEqual(p.last_request['retry_after_seconds'],3600)
+
+    def test_rate_limit_message_never_echoes_arbitrary_header_or_body(self):
+        p = ChatProvider('https://example.com/api', 'model')
+        opener = MagicMock()
+        opener.open.side_effect = [limited('SECRET'),limited('SECRET'),limited('SECRET')]
+        with patch('promo_finder.providers.urllib.request.build_opener', return_value=opener), patch('promo_finder.providers.time.sleep'):
+            with self.assertRaises(RateLimitError) as caught:
+                p.complete('prompt', {})
+        self.assertNotIn('SECRET',str(caught.exception))
+        self.assertNotIn('Provider asks',str(caught.exception))
 
     def test_repeated_limits_stop_after_two_retries(self):
         p = ChatProvider('https://example.com/api', 'model')

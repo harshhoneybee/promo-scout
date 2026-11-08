@@ -3,7 +3,7 @@
 ## Verified
 
 - Dependency-free Python 3.10+ CLI and local browser server implemented.
-- 56 unit tests passed: 12 parser, 19 engine/provider-contract, 5 HTTP diagnostic, 8 model-output and 12 retry/checkpoint tests.
+- 59 unit tests passed: 12 parser, 19 engine/provider-contract, 6 HTTP diagnostic, 9 model-output and 13 retry/checkpoint tests.
 - All 50 supplied episodes parsed: 3,727 timed events; no scene-bound warnings.
 - Offline baseline processed all 50 episodes without errors: 174 valid candidates, 10 selected after overlap suppression; 22 episodes had no baseline candidate. These are mechanical results, not editorial accuracy or recall measurements.
 - HTTP smoke test returned 200 for homepage, configuration, and synthetic-demo analysis (4 candidates, 1 distinct selected clip).
@@ -14,7 +14,7 @@
 
 ## Not yet verified
 
-- Full 50-episode AI run and full-pack editorial evaluation remain pending.
+- Completion of the 15 missing episodes and full-pack editorial evaluation remain pending.
 - Visual browser testing could not run in the build environment: Chromium was blocked by its socket restrictions. Review layout and export buttons in your local browser.
 - No measured audience results; no claim of CTR uplift or comprehensive promo recall.
 - Final human editorial shortlist, two-page solution PDF and narrated walkthrough remain to be completed.
@@ -44,3 +44,9 @@ The user-supplied demo export recorded `finish_reason: length`, empty final cont
 ## Observed live model error
 
 The user screenshots show a selected synthetic clip at 00:00.00–00:56.00 with an 80/100 model score. Its explanation asks whether the lawyer will seize the envelope and claims the struggle is unresolved. The supplied synthetic action at 00:53.00–00:56.00 explicitly says Evelyn snatches it away before he can reach it. That local action is resolved inside the selected clip. Human review rejects this stated cliffhanger even though automated timing checks pass. The 100/100 score on the other clip is also a model judgment, not measured audience performance. No confidential source text is needed to demonstrate this failure.
+
+## Partial full-pack AI run and size diagnostics
+
+User screenshots show 35 successful episodes out of 50, 76 proposed candidates, 37 mechanically rejected and 10 shortlisted. Episode 3 received HTTP 413; Episode 37 received persistent HTTP 429; Episodes 38–50 were not attempted after that rate limit. The 35 successful episodes should have local checkpoints with the default configuration; their presence and raw content still need confirmation from the user export.
+
+Request serialization now removes JSON formatting whitespace without changing source values, event IDs, timestamps, generation settings or the logical checkpoint identity. For the Episode 3 input, the user-message size decreases from 19,491 to 18,069 characters. This is a measured size reduction, not a live confirmation that the provider will accept the request. HTTP 413 now explains the size problem, and persistent HTTP 429 reports the numeric Retry-After delay when supplied. Tests verify lossless serialization, retained checkpoint compatibility and safe diagnostics.

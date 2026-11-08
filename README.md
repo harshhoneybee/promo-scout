@@ -3,7 +3,7 @@
 A runnable screenplay-to-promo prototype for **Problem 1: Find the Promos**.
 Upload timestamped scripts, inspect ranked 20–60 second continuous clips, and export exact episode cuts with their source evidence.
 
-**Status:** offline baseline tested on all 50 assignment episodes. User screenshots confirm a successful live Groq GPT-OSS 120B synthetic run: 3 proposed candidates and 2 shortlisted. Human review found a false cliffhanger in one selected clip; see the review notes. Full-pack AI analysis and the final editorial shortlist are still pending. 56 automated tests pass, including bounded rate-limit retries and checkpoint resume.
+**Status:** offline baseline tested on all 50 assignment episodes. User screenshots confirm a successful live Groq GPT-OSS 120B synthetic run: 3 proposed candidates and 2 shortlisted. Human review found a false cliffhanger in one selected clip; see the review notes. A user-run full-pack attempt completed 35 of 50 episodes and shortlisted 10; Episode 3 hit HTTP 413, Episode 37 hit HTTP 429 and Episodes 38–50 were not attempted. The full AI run and final editorial shortlist remain incomplete. 59 automated tests pass, including bounded rate-limit retries and checkpoint resume.
 
 ## Start here (Windows)
 
@@ -78,6 +78,7 @@ The provider sends requests sequentially with a 120-second request timeout. A 50
 - Checkpoints preserve the exact provider JSON. Their identity includes input, prompt, model, endpoint and generation settings. Structural validation and ranking run again on every analysis. The report identifies reused responses and their original save time; the original provider usage is retained and must not be counted as a new charge when reused.
 - Incomplete/truncated answers and HTTP failures are not checkpointed. The Full run JSON still preserves any returned model envelope for diagnosis. Download partial reports before retrying to keep the failure history.
 - Checkpoints may contain confidential script excerpts, contain no configured API key, and are excluded by `.gitignore`. Keep them private. Set `PROMO_CACHE=0` before starting the server to disable saving/reuse, or delete `outputs/ai-checkpoints/` to deliberately request fresh results. Disabling checkpoints does not delete existing files.
+- HTTP 413 is a request-size problem, distinct from HTTP 429. Requests now omit JSON formatting whitespace while preserving every source field and text value. Existing checkpoints remain compatible. If a request still exceeds the provider limit, waiting alone will not fix it; it needs further size reduction or a higher request limit. The numeric `Retry-After` value is included in persistent 429 diagnostics when provided.
 - Exact limits depend on your account: [Groq rate limits](https://console.groq.com/docs/rate-limits). Checkpointing prevents repeating completed calls; it does not bypass provider quotas.
 
 Provider protocol references: [Hugging Face chat completion](https://huggingface.co/docs/inference-providers/tasks/chat-completion), [Ollama chat API](https://docs.ollama.com/api/chat).

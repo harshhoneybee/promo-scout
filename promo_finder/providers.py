@@ -73,6 +73,8 @@ def http_error_message(exc):
         return prefix + 'Authentication failed. Check PROMO_API_KEY locally; never share the key.'
     if exc.code == 429:
         return prefix + 'Rate limit reached. Check your provider quota and retry after its reset time.'
+    if exc.code == 413:
+        return prefix + 'Request is too large for the provider limit. Waiting alone will not reduce its size. Use the latest compact-request update; if it persists, a smaller input or higher request limit is needed. Your API key is not the cause of this error.'
     if exc.code == 403:
         return prefix + 'Access denied; no recognized detailed error code. Check model permissions in the provider console, then contact provider support if access is allowed.'
     return prefix + 'Check model availability and endpoint configuration. Provider response text was withheld to protect credentials and scripts.'
@@ -126,14 +128,14 @@ class ChatProvider:
     def complete(self, system, payload):
         self.last_request = {'attempts': 0, 'rate_limit_wait_seconds': 0}
         messages = [{'role':'system','content':system},
-                    {'role':'user','content':json.dumps(payload,ensure_ascii=False)}]
+                    {'role':'user','content':json.dumps(payload,ensure_ascii=False,separators=(',',':'))}]
         body = {'model':self.model,'messages':messages,'stream':False}
         body.update(self.settings())
         headers = {'Content-Type':'application/json', 'Accept':'application/json',
                    'User-Agent':'PromoScout/0.1 (+https://github.com/harshhoneybee/promo-scout)'}
         if self.api_key:
             headers['Authorization'] = 'Bearer ' + self.api_key
-        request = urllib.request.Request(self.url,json.dumps(body).encode(),headers,method='POST')
+        request = urllib.request.Request(self.url,json.dumps(body,ensure_ascii=False,separators=(',',':')).encode(),headers,method='POST')
         for attempt in range(3):
             self.last_request['attempts'] += 1
             try:
@@ -150,7 +152,16 @@ class ChatProvider:
                         self.last_request['rate_limit_wait_seconds'] += delay
                         time.sleep(delay)
                         continue
-                    raise RateLimitError('Provider HTTP 429. Rate limit persists. New requests paused; completed episodes are checkpointed when enabled. Wait for your provider quota to reset, then rerun the same file.') from None
+                    hint = ''
+                    try:
+                        seconds = float(exc.headers.get('Retry-After', ''))
+                        if math.isfinite(seconds) and seconds >= 0:
+                            seconds = math.ceil(seconds)
+                            self.last_request['retry_after_seconds'] = seconds
+                            hint = f'Provider asks you to wait at least {seconds} seconds before retrying. '
+                    except (TypeError, ValueError, AttributeError):
+                        pass
+                    raise RateLimitError('Provider HTTP 429. Rate limit persists. ' + hint + 'New requests paused; completed episodes are checkpointed when enabled. Wait for your provider quota to reset, then rerun the same file.') from None
                 raise RuntimeError(http_error_message(exc)) from None
             except (urllib.error.URLError,TimeoutError,OSError):
                 raise RuntimeError('Provider connection failed or timed out. No baseline was substituted.') from None

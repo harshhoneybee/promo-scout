@@ -30,6 +30,12 @@ class ErrorDiagnosticsTests(unittest.TestCase):
         self.assertIn('Authentication failed',http_error_message(error(401,'')))
         self.assertIn('Rate limit',http_error_message(error(429,'')))
 
+    def test_oversize_request_is_not_reported_as_auth_or_model_availability(self):
+        result=http_error_message(error(413,'SECRET script and organization information'))
+        self.assertIn('Request is too large',result)
+        self.assertIn('Waiting alone',result)
+        self.assertNotIn('SECRET',result)
+
     def test_named_api_client_and_safe_error_reach_caller(self):
         opener=MagicMock()
         opener.open.side_effect=error(403,'error code: 1010')

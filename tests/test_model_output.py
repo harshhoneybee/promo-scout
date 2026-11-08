@@ -33,6 +33,20 @@ class ModelOutputTests(unittest.TestCase):
         p=ChatProvider('http://localhost:11434/api/chat','test',style='ollama')
         self.assertEqual(p.settings()['options']['num_predict'],4096)
 
+    def test_compact_request_preserves_every_source_value_and_prompt(self):
+        p=ChatProvider(GROQ_URL,'openai/gpt-oss-120b')
+        payload={'episode':3,'events':[{'id':'e001','kind':'dialogue','speaker':'Maya',
+                 'start':0.0,'end':2.5,'text':'Wait — keep  two spaces. “Why?”'}]}
+        stream=MagicMock();stream.__enter__.return_value.read.return_value=json.dumps(result('{"candidates":[]}')).encode()
+        opener=MagicMock();opener.open.return_value=stream
+        with patch('promo_finder.providers.urllib.request.build_opener',return_value=opener):
+            p.complete('Exact system prompt',payload)
+        sent=json.loads(opener.open.call_args.args[0].data)
+        content=sent['messages'][1]['content']
+        self.assertEqual(sent['messages'][0]['content'],'Exact system prompt')
+        self.assertEqual(json.loads(content),payload)
+        self.assertLess(len(content),len(json.dumps(payload,ensure_ascii=False)))
+
     def test_request_uses_new_settings_and_still_preserves_raw_response(self):
         p=ChatProvider(GROQ_URL,'openai/gpt-oss-120b',api_key='SECRET')
         response=result('{"candidates":[]}')
