@@ -1,0 +1,142 @@
+EPISODE NUMBER: Episode 1
+EPISODE LOGLINE: A courier interrupts a will reading with proof that the missing heir may still be alive, but the family lawyer knows who sent her.
+CONTINUITY NOTES: Entirely synthetic demonstration content written for this repository. No prior episodes required. All characters and events are fictional.
+
+--- SCRIPT START ---
+
+SCENE 01
+Scene heading: INT. FAMILY LAW OFFICE – DAY
+Scene start: 00:00.00
+Scene end: 01:35.00
+
+Actions and dialogue:
+
+**CAMERA:**
+Start: (00:00.00) | End: (00:06.00)
+A locked briefcase strikes the table between a courier, a wealthy woman, and a lawyer.
+
+**MAYA (Urgent):**
+Start: (00:00.00) | End: (00:02.80)
+"Your brother is alive. I delivered his letter."
+
+**ACTION:**
+Start: (00:02.80) | End: (00:05.00)
+Evelyn drops the pen she was about to use to sign the inheritance papers.
+
+**EVELYN (Disbelieving):**
+Start: (00:05.00) | End: (00:08.00)
+"We buried my brother ten years ago."
+
+**MAYA (Steady):**
+Start: (00:08.50) | End: (00:11.50)
+"Then someone else is in his grave."
+
+**LAWYER (Dismissive):**
+Start: (00:12.00) | End: (00:15.00)
+"A courier cannot stop a will reading."
+
+**EVELYN (Commanding):**
+Start: (00:15.50) | End: (00:18.00)
+"She can if she has proof. Open it."
+
+**ACTION:**
+Start: (00:18.00) | End: (00:22.00)
+Maya unlocks the case. Inside lies a childhood photograph and a sealed blue envelope.
+
+**CAMERA:**
+Start: (00:18.00) | End: (00:25.00)
+Close shot of Evelyn recognizing the photograph, then of the lawyer quietly reaching for his phone.
+
+**EVELYN (Shaken):**
+Start: (00:22.00) | End: (00:25.00)
+"I burned every copy of that photograph."
+
+**MAYA (Quiet):**
+Start: (00:25.50) | End: (00:28.50)
+"He said you would recognize the one he kept."
+
+**ACTION:**
+Start: (00:28.50) | End: (00:31.00)
+The lawyer locks the office door. Maya hears the click and turns.
+
+**MAYA (Alarmed):**
+Start: (00:31.00) | End: (00:34.00)
+"Why did you lock us in?"
+
+**LAWYER (Cold):**
+Start: (00:34.50) | End: (00:38.00)
+"Because your brother should have stayed dead."
+
+**ACTION:**
+Start: (00:38.00) | End: (00:41.00)
+Evelyn steps between the lawyer and the courier, keeping one hand on the sealed letter.
+
+**EVELYN (Accusing):**
+Start: (00:41.00) | End: (00:45.00)
+"You signed his death certificate. What did you do?"
+
+**LAWYER (Defensive):**
+Start: (00:45.50) | End: (00:48.50)
+"I signed what your father told me to sign."
+
+**MAYA (Firm):**
+Start: (00:49.00) | End: (00:53.00)
+"The letter names everyone who was paid that night."
+
+**ACTION:**
+Start: (00:53.00) | End: (00:56.00)
+The lawyer lunges for the envelope. Evelyn snatches it away before he can reach it.
+
+**CAMERA:**
+Start: (00:53.00) | End: (01:01.00)
+The envelope fills the frame. A red mark appears beneath Evelyn's fingers.
+
+**EVELYN (Disturbed):**
+Start: (00:56.00) | End: (01:00.00)
+"This is my brother's handwriting. But this stain..."
+
+**MAYA (Troubled):**
+Start: (01:00.50) | End: (01:04.50)
+"He was bleeding when he gave it to me."
+
+**EVELYN (Urgent):**
+Start: (01:05.00) | End: (01:08.50)
+"Where is he? Tell me where my brother is."
+
+**ACTION:**
+Start: (01:08.50) | End: (01:12.00)
+Maya's phone vibrates. The caller's name is hidden.
+
+**MAYA (Hesitant):**
+Start: (01:12.00) | End: (01:15.00)
+"He said he would call when we were safe."
+
+**LAWYER (Frightened):**
+Start: (01:15.50) | End: (01:19.00)
+"Do not answer that phone. He isn't alone."
+
+**ACTION:**
+Start: (01:19.00) | End: (01:22.00)
+Maya answers and turns on the speaker. A man's breathing fills the room.
+
+**VOICE ON PHONE (Strained):**
+Start: (01:22.00) | End: (01:26.00)
+"Evelyn? Whatever they told you, don't trust—"
+
+**SOUND FX:**
+Start: (01:26.00) | End: (01:27.00)
+The call disconnects with a sharp click.
+
+**ACTION:**
+Start: (01:27.00) | End: (01:31.00)
+Three deliberate knocks sound from the locked office door. The lawyer backs away.
+
+**EVELYN (Whispering):**
+Start: (01:31.00) | End: (01:34.00)
+"Who is on the other side?"
+
+**CAMERA:**
+Start: (01:34.00) | End: (01:35.00)
+The handle begins to turn. Cut to black before the visitor is revealed.
+
+--- SCRIPT END ---
