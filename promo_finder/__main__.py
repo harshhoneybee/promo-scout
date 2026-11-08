@@ -5,6 +5,7 @@ from .parser import load_episodes
 from .engine import run
 from .providers import ChatProvider
 from .export import save_report
+from .checkpoints import ResponseCheckpoints
 
 
 def main():
@@ -28,6 +29,7 @@ def main():
         episodes = load_episodes(args.input)
         provider = ChatProvider.from_env() if args.mode=='ai' else None
         report = run(episodes,args.mode,args.top,provider,
+            checkpoints=ResponseCheckpoints.from_env() if args.mode=='ai' else None,
             progress=lambda n,total,r:print(f'[{n}/{total}] Episode {r["episode"]}: {r["candidates_valid"]} valid' + (' — ERROR' if r['error'] else ''),file=sys.stderr))
         save_report(report,args.out)
         print(f'Saved {len(report["promos"])} ranked promos to {args.out}')

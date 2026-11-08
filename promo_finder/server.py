@@ -1,4 +1,4 @@
-"""Loopback-only prototype. No persistence, public hosting, cookies or API keys in browser."""
+"""Loopback-only prototype with private AI checkpoints; no API keys in browser."""
 import base64
 import json
 import os
@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 from .engine import run
 from .parser import parse_zip_bytes, parse_episode
 from .providers import ChatProvider
+from .checkpoints import ResponseCheckpoints
 
 ROOT = Path(__file__).resolve().parent.parent
 MAX_BODY = 15_000_000
@@ -81,7 +82,10 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError('Upload a ZIP or a TXT file (TXT max 1 MB)')
             mode = data.get('mode','baseline')
             provider = ChatProvider.from_env() if mode=='ai' else None
-            result = run(episodes,mode,data.get('top_k',10),provider)
+            checkpoints = ResponseCheckpoints.from_env() if mode == 'ai' else None
+            result = run(episodes,mode,data.get('top_k',10),provider,checkpoints=checkpoints,
+                         progress=lambda n,total,r: print(f'[{n}/{total}] Episode {r["episode"]}: '
+                            + ('needs retry' if r['error'] else f'{r["candidates_valid"]} valid'), flush=True))
             self.respond(200,result)
         except (ValueError,TypeError,KeyError,UnicodeError) as exc:
             self.respond(400,{'error':str(exc)})

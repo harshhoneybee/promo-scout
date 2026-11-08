@@ -61,3 +61,9 @@ Record at least one actual AI error when AI is used. If the only executed mode i
 Screenplay timestamps are not verified edit points in a rendered video. Delivery, acting, framing, pacing, and visual legibility can change whether a hook works. An editor must confirm the proposed cuts against footage. The initial version selects single continuous segments; stitched promos are outside its scope.
 
 Human review establishes shortlist usefulness, not advertising effectiveness. With a real team, measure editor acceptance and time saved against their current workflow. With distribution access, compare approved variants using a controlled test with defined audience, spend, and duration; report view retention and downstream viewing without claiming causation from uncontrolled results.
+
+## Recorded synthetic-demo failure (8 November 2026)
+
+Evidence: user screenshots of the successful Groq GPT-OSS 120B demo, checked against `examples/demo_episode.txt`. The selected 00:00.00–00:56.00 clip received an 80/100 model score and described the lawyer reaching for the envelope as an unresolved struggle. The 00:53.00–00:56.00 source action states that Evelyn snatches it away before he can reach it.
+
+Human finding: the claimed cliffhanger is resolved inside the clip. Reject this rationale/cut for the proposed ending; keep the original output unchanged in the exported run. Timing validation does not establish narrative correctness. The remaining demo candidates and full-pack AI results still require review.

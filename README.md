@@ -3,7 +3,7 @@
 A runnable screenplay-to-promo prototype for **Problem 1: Find the Promos**.
 Upload timestamped scripts, inspect ranked 20–60 second continuous clips, and export exact episode cuts with their source evidence.
 
-**Status:** offline baseline tested on the full 50-episode assignment pack. AI integration is implemented and contract-tested. A live user-run synthetic test authenticated successfully but exhausted its 1,800-token budget before returning an answer. The updated adapter addresses that configuration; a successful live rerun is still pending. Baseline outputs are not AI outputs or a submission-ready editorial shortlist.
+**Status:** offline baseline tested on all 50 assignment episodes. User screenshots confirm a successful live Groq GPT-OSS 120B synthetic run: 3 proposed candidates and 2 shortlisted. Human review found a false cliffhanger in one selected clip; see the review notes. Full-pack AI analysis and the final editorial shortlist are still pending. 56 automated tests pass, including bounded rate-limit retries and checkpoint resume.
 
 ## Start here (Windows)
 
@@ -31,7 +31,7 @@ Each output directory must be new. It contains:
 - `promos.csv`: editor-friendly ranked cut list, with formula-escaped text.
 - `raw_responses.json`: unedited candidate-generator responses; baseline and AI runs are explicitly identified.
 
-The browser keeps results in memory; download the JSON before closing the page. The command line writes them to disk.
+The browser keeps the assembled report in memory; download Full run JSON before closing the page. AI mode also saves completed model responses privately under `outputs/ai-checkpoints/` to support resume. The command line writes the assembled report to its new output directory.
 
 ## Connect a model
 
@@ -69,7 +69,16 @@ python -m promo_finder analyze "path/to/assignment.zip" --mode ai --out outputs/
 
 For Groq GPT-OSS 20B/120B, the adapter requests strict JSON schema output, low reasoning effort and a 4,096-token completion budget (including reasoning). Set `PROMO_MAX_OUTPUT_TOKENS` to an integer from 256 to 32768 to override the budget; provider quota still applies. Other compatible providers do not receive Groq-only settings. Truncated, empty and refused responses produce distinct errors, with originals preserved.
 
-The provider sends one sequential request per episode with a 120-second request timeout. A 50-episode AI run can take several minutes. Providers returning Markdown rather than strict JSON produce an explicit episode error; outputs remain available for diagnosis. CLI exit code 2 means partial episode failure, 1 means input/configuration/output failure.
+The provider sends requests sequentially with a 120-second request timeout. A 50-episode AI run can take many minutes or span quota resets, depending on your account. The terminal prints per-episode progress. Providers returning Markdown rather than strict JSON produce an explicit episode error; outputs remain available for diagnosis. CLI exit code 2 means partial episode failure, 1 means input/configuration/output failure.
+
+### Rate limits and resuming a full pack
+
+- HTTP 429 triggers at most two retries, honoring `Retry-After`, with at most 120 seconds of combined waiting. Authentication errors are not retried. A longer reset or persistent limit pauses new requests; remaining uncached episodes are marked **not attempted**, while existing checkpoints can still be reused.
+- Re-select the **same ZIP**, use the same model/settings and run again after the provider quota resets. Completed responses are reused, including genuine no-candidate results; only missing episodes need new requests. Keep the same project folder so its `outputs/ai-checkpoints/` directory is retained. Do not rerun repeatedly while quota is exhausted.
+- Checkpoints preserve the exact provider JSON. Their identity includes input, prompt, model, endpoint and generation settings. Structural validation and ranking run again on every analysis. The report identifies reused responses and their original save time; the original provider usage is retained and must not be counted as a new charge when reused.
+- Incomplete/truncated answers and HTTP failures are not checkpointed. The Full run JSON still preserves any returned model envelope for diagnosis. Download partial reports before retrying to keep the failure history.
+- Checkpoints may contain confidential script excerpts, contain no configured API key, and are excluded by `.gitignore`. Keep them private. Set `PROMO_CACHE=0` before starting the server to disable saving/reuse, or delete `outputs/ai-checkpoints/` to deliberately request fresh results. Disabling checkpoints does not delete existing files.
+- Exact limits depend on your account: [Groq rate limits](https://console.groq.com/docs/rate-limits). Checkpointing prevents repeating completed calls; it does not bypass provider quotas.
 
 Provider protocol references: [Hugging Face chat completion](https://huggingface.co/docs/inference-providers/tasks/chat-completion), [Ollama chat API](https://docs.ollama.com/api/chat).
 
@@ -91,7 +100,7 @@ The source timeline grounds **timestamps and evidence**, not every claim in an A
 - No forced promo per episode. All input episodes appear in the coverage report even if the generator abstains or an AI call fails.
 - Input ZIP/TXT must follow the supplied timestamped format. Invalid scripts fail parsing rather than silently disappearing. The UI accepts ZIPs up to 10 MB and TXT up to 1 MB; CLI supports ZIP up to 50 MiB, individual text up to 2 MiB, expanded archive up to 100 MiB, and at most 500 episodes.
 - The browser server binds to loopback and is intended for your laptop. It is not a hardened public multi-user deployment. GitHub Pages cannot execute this Python backend. A repository with these run instructions satisfies the brief's prototype format.
-- AI calls are sequential; resume, caching and retries are not implemented. Larger rollouts should cache per-episode inputs by hash, bound concurrency/rate limits, log token usage and use human-review queues. Estimate cost from actual input/output tokens and the selected model's current price; do not invent a per-show cost.
+- AI calls are sequential with bounded HTTP 429 retries and private per-episode checkpoints. The prototype has no distributed scheduler or multi-user queue. Estimate cost from actual new input/output tokens and the selected model's current price; do not invent a per-show cost.
 
 ## Confidentiality
 
@@ -103,7 +112,8 @@ The supplied Kuku scripts and outputs containing their text must **not be publis
 |---|---|
 | `promo_finder/parser.py` | Parse scripts and ZIPs into timed events |
 | `promo_finder/engine.py` | Prompt, baseline, validation, ranking and audit trail |
-| `promo_finder/providers.py` | Compatible API / Ollama adapter |
+| `promo_finder/providers.py` | Compatible API / Ollama adapter and bounded 429 retries |
+| `promo_finder/checkpoints.py` | Private response checkpoints for interrupted runs |
 | `promo_finder/server.py` | Local browser API |
 | `web/index.html` | Upload, review and export interface |
 | `promo_finder/__main__.py` | CLI entry point |

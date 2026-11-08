@@ -1,9 +1,32 @@
 """Small swappable model adapter. Credentials come from environment, never outputs."""
 import json
 import os
+import math
+import time
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 import urllib.error
 import urllib.request
 from urllib.parse import urlparse
+
+
+class RateLimitError(RuntimeError):
+    """Pause new requests; completed episodes can be resumed from checkpoints."""
+
+
+def retry_delay(headers, attempt):
+    """Honor Retry-After seconds or HTTP date; never retry before the stated time."""
+    value = headers.get('Retry-After') if headers else None
+    try:
+        seconds = float(value)
+    except (TypeError, ValueError):
+        try:
+            seconds = (parsedate_to_datetime(value) - datetime.now(timezone.utc)).total_seconds()
+        except (TypeError, ValueError, OverflowError):
+            seconds = 30 * (attempt + 1)
+    if not math.isfinite(seconds):
+        return 121
+    return max(1, math.ceil(seconds))
 
 
 def promo_response_format():
@@ -101,6 +124,7 @@ class ChatProvider:
         return {'temperature': 0.2, 'max_tokens': self.max_output_tokens}
 
     def complete(self, system, payload):
+        self.last_request = {'attempts': 0, 'rate_limit_wait_seconds': 0}
         messages = [{'role':'system','content':system},
                     {'role':'user','content':json.dumps(payload,ensure_ascii=False)}]
         body = {'model':self.model,'messages':messages,'stream':False}
@@ -110,18 +134,28 @@ class ChatProvider:
         if self.api_key:
             headers['Authorization'] = 'Bearer ' + self.api_key
         request = urllib.request.Request(self.url,json.dumps(body).encode(),headers,method='POST')
-        try:
-            with urllib.request.build_opener(NoRedirect()).open(request, timeout=self.timeout) as response:
-                data = response.read(2_000_001)
-                if len(data)>2_000_000:
-                    raise RuntimeError('Provider response exceeds 2 MB limit')
-                return json.loads(data)
-        except urllib.error.HTTPError as exc:
-            raise RuntimeError(http_error_message(exc)) from None
-        except (urllib.error.URLError,TimeoutError,OSError):
-            raise RuntimeError('Provider connection failed or timed out. No baseline was substituted.') from None
-        except (ValueError,UnicodeError):
-            raise RuntimeError('Provider response was not valid JSON') from None
+        for attempt in range(3):
+            self.last_request['attempts'] += 1
+            try:
+                with urllib.request.build_opener(NoRedirect()).open(request, timeout=self.timeout) as response:
+                    data = response.read(2_000_001)
+                    if len(data)>2_000_000:
+                        raise RuntimeError('Provider response exceeds 2 MB limit')
+                    return json.loads(data)
+            except urllib.error.HTTPError as exc:
+                if exc.code == 429:
+                    delay = retry_delay(exc.headers, attempt)
+                    exc.close()
+                    if attempt < 2 and self.last_request['rate_limit_wait_seconds'] + delay <= 120:
+                        self.last_request['rate_limit_wait_seconds'] += delay
+                        time.sleep(delay)
+                        continue
+                    raise RateLimitError('Provider HTTP 429. Rate limit persists. New requests paused; completed episodes are checkpointed when enabled. Wait for your provider quota to reset, then rerun the same file.') from None
+                raise RuntimeError(http_error_message(exc)) from None
+            except (urllib.error.URLError,TimeoutError,OSError):
+                raise RuntimeError('Provider connection failed or timed out. No baseline was substituted.') from None
+            except (ValueError,UnicodeError):
+                raise RuntimeError('Provider response was not valid JSON') from None
 
     def content(self, response):
         try:

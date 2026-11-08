@@ -59,14 +59,14 @@
     function updateMode() {
       const ai=$('mode').value==='ai';
       $('mode-note').textContent=ai?'Uses '+state.model+'. Scripts will be sent to your configured AI provider.':state.configured?'A transparent starting point. No model or API key required.':'No model required. For AI mode, follow the server environment setup in README.md.';
-      $('privacy-note').textContent=ai?'AI mode sends script content to the model provider configured on your server. Credentials stay on the server.':'Offline mode processes scripts on this server without sending them to an AI provider. Keep confidential packs out of public repositories.';
+      $('privacy-note').textContent=ai?'AI mode sends script content to the model provider configured on your server. Credentials stay on the server. Completed responses are saved privately on this computer for resume unless checkpoints are disabled.':'Offline mode processes scripts on this server without sending them to an AI provider. Keep confidential packs out of public repositories.';
     }
     $('mode').addEventListener('change',updateMode);
     fetch('/api/config').then(response=>{if(!response.ok)throw new Error('Configuration unavailable');return response.json();}).then(config=>{state.configured=!!config.ai_configured;state.model=config.model||'the configured model';$('mode').options[1].disabled=!state.configured;updateMode();}).catch(()=>{updateMode();$('mode-note').textContent='Offline mode is ready. AI configuration could not be checked.';});
     function base64File(file) { return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('The selected file could not be read.'));reader.readAsDataURL(file);}); }
     $('run-button').addEventListener('click',async()=>{
       state.busy=true;sync();message('');$('empty').hidden=true;$('results').hidden=true;$('loading').hidden=false;
-      const started=Date.now();$('loading-description').textContent=$('mode').value==='ai'?'Reviewing episodes with the configured model. Larger packs can take several minutes.':'Finding candidates and checking their cut points.';
+      const started=Date.now();$('loading-description').textContent=$('mode').value==='ai'?'Reviewing episodes. Large packs can take many minutes; temporary limits are retried automatically. Keep this page and the server open. Episode progress appears in the terminal.':'Finding candidates and checking their cut points.';
       $('loading-time').textContent='Starting analysis';
       const timer=setInterval(()=>$('loading-time').textContent=Math.round((Date.now()-started)/1000)+' seconds elapsed',1000);
       try{
@@ -82,7 +82,7 @@
     function render(data){
       const meta=data.meta||{}, counts=meta.counts||{}, promos=Array.isArray(data.promos)?data.promos:[], episodes=Array.isArray(data.episodes)?data.episodes:[];
       const baseline=meta.mode!=='ai';
-      $('run-meta').textContent=(baseline?'Offline baseline · Keyword scoring':'AI narrative review · '+(meta.model||state.model))+' · '+number(meta.elapsed_seconds).toFixed(1)+'s · '+number(meta.event_count).toLocaleString()+' source events';
+      $('run-meta').textContent=(baseline?'Offline baseline · Keyword scoring':'AI narrative review · '+(meta.model||state.model))+' · '+number(meta.elapsed_seconds).toFixed(1)+'s · '+number(meta.event_count).toLocaleString()+' source events'+(number(meta.episodes_reused)?' · '+number(meta.episodes_reused)+' episodes reused':'');
       $('result-notice').textContent=meta.warning||(baseline?'Baseline results are generated with simple rules and keywords. They are a useful comparison, but can mistake dramatic language for a strong hook or cliffhanger.':'AI suggestions have passed structural checks. Review their story logic and source evidence before selecting a final promo.');
       const failures=episodes.filter(ep=>ep.error);
       $('result-notice').classList.toggle('error',failures.length>0);

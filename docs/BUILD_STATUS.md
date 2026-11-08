@@ -3,16 +3,18 @@
 ## Verified
 
 - Dependency-free Python 3.10+ CLI and local browser server implemented.
-- 44 unit tests passed: 12 parser, 19 engine/provider-contract, 5 HTTP diagnostic and 8 model-output tests.
+- 56 unit tests passed: 12 parser, 19 engine/provider-contract, 5 HTTP diagnostic, 8 model-output and 12 retry/checkpoint tests.
 - All 50 supplied episodes parsed: 3,727 timed events; no scene-bound warnings.
 - Offline baseline processed all 50 episodes without errors: 174 valid candidates, 10 selected after overlap suppression; 22 episodes had no baseline candidate. These are mechanical results, not editorial accuracy or recall measurements.
 - HTTP smoke test returned 200 for homepage, configuration, and synthetic-demo analysis (4 candidates, 1 distinct selected clip).
 - Frontend JavaScript passed a syntax check.
 - Source content and full-pack outputs excluded from the repository.
+- User screenshots confirm a live synthetic Groq GPT-OSS 120B run: 3 candidates proposed, 0 mechanically rejected and 2 shortlisted in 2.3 seconds. Layout and candidate rendering are visible; download contents have not yet been inspected.
+- Bounded HTTP 429 retry and checkpoint resume tested with simulated provider responses. A local HTTP integration test ran the demo twice with one mocked provider call, confirming reuse through the browser API. Browser JavaScript syntax passed. Live full-pack quota handling is not yet verified.
 
 ## Not yet verified
 
-- A user-run synthetic Groq GPT-OSS 120B call authenticated successfully, but its original 1,800-token budget was exhausted before a final answer. The corrected request settings have automated coverage; a successful live rerun is still pending.
+- Full 50-episode AI run and full-pack editorial evaluation remain pending.
 - Visual browser testing could not run in the build environment: Chromium was blocked by its socket restrictions. Review layout and export buttons in your local browser.
 - No measured audience results; no claim of CTR uplift or comprehensive promo recall.
 - Final human editorial shortlist, two-page solution PDF and narrated walkthrough remain to be completed.
@@ -25,16 +27,20 @@ During AI-assisted implementation, code review found duration validation rounded
 
 ## Next steps
 
-1. Run the synthetic demo locally and inspect its evidence.
-2. Configure a model; run a synthetic AI smoke test and inspect raw responses.
+1. Preserve the successful synthetic demo export and the observed editorial error.
+2. Update locally to include rate-limit retries and checkpoint resume.
 3. Run all 50 episodes in AI mode, retaining unedited output and any episode errors.
 4. Review top 10, a sample of lower-ranked candidates, and some abstained episodes using QUALITY_REVIEW.md. Record actual judgments and changes separately from raw outputs.
 5. Write the maximum-two-page solution document using only verified claims and your own decisions. Record a short walkthrough in your own voice.
 
 ## HTTP diagnostics update
 
-The API client now identifies itself as PromoScout and exposes only predefined, safe error categories for permission denials, gateway 1010, authentication and rate limits. Provider error text and secrets are not echoed. Failed episodes are highlighted at the top of the UI rather than looking like a successful empty shortlist. These changes are regression-tested; the user must rerun the synthetic demo to verify the live connection.
+The API client now identifies itself as PromoScout and exposes only predefined, safe error categories for permission denials, gateway 1010, authentication and rate limits. Provider error text and secrets are not echoed. Failed episodes are highlighted at the top of the UI rather than looking like a successful empty shortlist. These changes are regression-tested; the subsequent user-run synthetic demo confirms the live connection works.
 
 ## Verified token-budget failure and fix
 
-The user-supplied demo export recorded `finish_reason: length`, empty final content, 1,800 completion tokens and 1,798 reasoning tokens. The default was too small for this reasoning model. The Groq GPT-OSS adapter now requests low reasoning effort, a 4,096-token completion budget and strict structured JSON. It recognizes truncation before attempting JSON parsing and preserves the original response. No reasoning text or private run file was copied into this repository. The actual captured response was replayed locally to verify the clearer error. A live success cannot be claimed until the user reruns the demo.
+The user-supplied demo export recorded `finish_reason: length`, empty final content, 1,800 completion tokens and 1,798 reasoning tokens. The default was too small for this reasoning model. The Groq GPT-OSS adapter now requests low reasoning effort, a 4,096-token completion budget and strict structured JSON. It recognizes truncation before attempting JSON parsing and preserves the original response. No reasoning text or private run file was copied into this repository. The actual captured response was replayed locally to verify the clearer error. The subsequent user screenshots confirm a successful live synthetic rerun.
+
+## Observed live model error
+
+The user screenshots show a selected synthetic clip at 00:00.00–00:56.00 with an 80/100 model score. Its explanation asks whether the lawyer will seize the envelope and claims the struggle is unresolved. The supplied synthetic action at 00:53.00–00:56.00 explicitly says Evelyn snatches it away before he can reach it. That local action is resolved inside the selected clip. Human review rejects this stated cliffhanger even though automated timing checks pass. The 100/100 score on the other clip is also a model judgment, not measured audience performance. No confidential source text is needed to demonstrate this failure.
