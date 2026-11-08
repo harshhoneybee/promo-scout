@@ -173,10 +173,16 @@ def run(episodes, mode='baseline', top_k=10, provider=None, progress=None):
             if mode == 'ai':
                 payload = episode_payload(ep)
                 raw_entry['request'] = {'system':SYSTEM_PROMPT,'input':payload}
+                if hasattr(provider, 'settings'):
+                    raw_entry['request']['generation'] = provider.settings()
                 raw.append(raw_entry)
                 response = provider.complete(SYSTEM_PROMPT, payload)
                 raw_entry['response'] = response  # exact provider JSON, no cleanup
-                parsed = json.loads(provider.content(response))
+                content = provider.content(response)
+                try:
+                    parsed = json.loads(content)
+                except json.JSONDecodeError:
+                    raise ValueError('Model answer was not valid JSON. Inspect the original response in Full run JSON; no output was silently repaired.') from None
                 if not isinstance(parsed,dict) or not isinstance(parsed.get('candidates'),list):
                     raise ValueError('AI response must contain a candidates array')
                 proposed = parsed['candidates']

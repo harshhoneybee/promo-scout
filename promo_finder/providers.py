@@ -6,6 +6,24 @@ import urllib.request
 from urllib.parse import urlparse
 
 
+def promo_response_format():
+    """Strict output shape; semantic and timestamp checks remain in Python."""
+    properties = {key: {'type': 'string'} for key in (
+        'start_event', 'end_event', 'hook_event', 'cliffhanger_event',
+        'hook', 'cliffhanger', 'why')}
+    properties['scores'] = {
+        'type': 'object', 'properties': {key: {'type': 'number'} for key in ('hook', 'cliffhanger', 'clarity')},
+        'required': ['hook', 'cliffhanger', 'clarity'], 'additionalProperties': False,
+    }
+    candidate = {'type': 'object', 'properties': properties,
+                 'required': list(properties), 'additionalProperties': False}
+    return {'type': 'json_schema', 'json_schema': {
+        'name': 'promo_candidates', 'strict': True,
+        'schema': {'type': 'object', 'properties': {'candidates': {'type': 'array', 'items': candidate}},
+                   'required': ['candidates'], 'additionalProperties': False},
+    }}
+
+
 def http_error_message(exc):
     """Map known error codes to safe diagnostics; never echo provider text or keys."""
     try:
@@ -43,7 +61,7 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class ChatProvider:
-    def __init__(self, url, model, api_key='', style='compatible', timeout=120):
+    def __init__(self, url, model, api_key='', style='compatible', timeout=120, max_output_tokens=4096):
         parsed = urlparse(url)
         if parsed.scheme not in ('https','http') or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError('Set a valid API endpoint URL without embedded credentials')
@@ -53,7 +71,12 @@ class ChatProvider:
             raise ValueError('API style must be compatible or ollama')
         if not model.strip():
             raise ValueError('Set PROMO_MODEL')
+        if type(max_output_tokens) is not int or not 256 <= max_output_tokens <= 32768:
+            raise ValueError('PROMO_MAX_OUTPUT_TOKENS must be an integer between 256 and 32768')
         self.url, self.model, self.api_key, self.style, self.timeout = url,model,api_key,style,timeout
+        self.max_output_tokens = max_output_tokens
+        self.groq_gpt_oss = (style == 'compatible' and parsed.hostname == 'api.groq.com'
+                            and model in ('openai/gpt-oss-120b', 'openai/gpt-oss-20b'))
 
     @classmethod
     def from_env(cls):
@@ -61,16 +84,27 @@ class ChatProvider:
         model = os.environ.get('PROMO_MODEL','')
         if not url or not model:
             raise ValueError('AI mode requires PROMO_API_URL and PROMO_MODEL; see README')
-        return cls(url,model,os.environ.get('PROMO_API_KEY',''),os.environ.get('PROMO_API_STYLE','compatible'))
+        try:
+            limit = int(os.environ.get('PROMO_MAX_OUTPUT_TOKENS', '4096'))
+        except ValueError:
+            raise ValueError('PROMO_MAX_OUTPUT_TOKENS must be an integer between 256 and 32768') from None
+        return cls(url,model,os.environ.get('PROMO_API_KEY',''),os.environ.get('PROMO_API_STYLE','compatible'),max_output_tokens=limit)
+
+    def settings(self):
+        """Safe, reproducible generation settings; excludes URL and credentials."""
+        if self.style == 'ollama':
+            return {'format': 'json', 'options': {'temperature': 0.2, 'num_predict': self.max_output_tokens}}
+        if self.groq_gpt_oss:
+            return {'temperature': 0.2, 'max_completion_tokens': self.max_output_tokens,
+                    'reasoning_effort': 'low', 'include_reasoning': False,
+                    'response_format': promo_response_format()}
+        return {'temperature': 0.2, 'max_tokens': self.max_output_tokens}
 
     def complete(self, system, payload):
         messages = [{'role':'system','content':system},
                     {'role':'user','content':json.dumps(payload,ensure_ascii=False)}]
         body = {'model':self.model,'messages':messages,'stream':False}
-        if self.style == 'ollama':
-            body.update(format='json',options={'temperature':0.2})
-        else:
-            body.update(temperature=0.2,max_tokens=1800)
+        body.update(self.settings())
         headers = {'Content-Type':'application/json', 'Accept':'application/json',
                    'User-Agent':'PromoScout/0.1 (+https://github.com/harshhoneybee/promo-scout)'}
         if self.api_key:
@@ -91,9 +125,19 @@ class ChatProvider:
 
     def content(self, response):
         try:
-            result = response['message']['content'] if self.style=='ollama' else response['choices'][0]['message']['content']
-            if not isinstance(result,str):
-                raise TypeError()
-            return result
-        except (KeyError,IndexError,TypeError):
+            choice = response if self.style == 'ollama' else response['choices'][0]
+            reason = choice.get('done_reason') if self.style == 'ollama' else choice.get('finish_reason')
+            message = choice['message']
+            result = message.get('content')
+            refused = message.get('refusal') or reason == 'content_filter'
+        except (KeyError,IndexError,TypeError,AttributeError):
             raise ValueError('Provider response does not contain text in the expected format') from None
+        if reason == 'length':
+            raise ValueError('Model reached its output token limit before completing the answer. Increase PROMO_MAX_OUTPUT_TOKENS, restart, and rerun the demo. The original response is preserved in Full run JSON.')
+        if refused:
+            raise ValueError('The model declined this request. Inspect the original response in Full run JSON.')
+        if not isinstance(result,str):
+            raise ValueError('Provider response does not contain text in the expected format')
+        if not result.strip():
+            raise ValueError('Model returned no final answer. Inspect finish_reason and usage in Full run JSON.')
+        return result

@@ -3,7 +3,7 @@
 A runnable screenplay-to-promo prototype for **Problem 1: Find the Promos**.
 Upload timestamped scripts, inspect ranked 20–60 second continuous clips, and export exact episode cuts with their source evidence.
 
-**Status:** offline baseline tested on the full 50-episode assignment pack. AI integration is implemented and contract-tested with mock responses, but no live model run has been completed. Baseline outputs are not AI outputs or a submission-ready editorial shortlist.
+**Status:** offline baseline tested on the full 50-episode assignment pack. AI integration is implemented and contract-tested. A live user-run synthetic test authenticated successfully but exhausted its 1,800-token budget before returning an answer. The updated adapter addresses that configuration; a successful live rerun is still pending. Baseline outputs are not AI outputs or a submission-ready editorial shortlist.
 
 ## Start here (Windows)
 
@@ -66,6 +66,8 @@ After configuration, run a synthetic AI smoke test first, inspect raw JSON, then
 python -m promo_finder analyze examples/demo_episode.txt --mode ai --out outputs/demo-ai-001
 python -m promo_finder analyze "path/to/assignment.zip" --mode ai --out outputs/full-ai-001
 ```
+
+For Groq GPT-OSS 20B/120B, the adapter requests strict JSON schema output, low reasoning effort and a 4,096-token completion budget (including reasoning). Set `PROMO_MAX_OUTPUT_TOKENS` to an integer from 256 to 32768 to override the budget; provider quota still applies. Other compatible providers do not receive Groq-only settings. Truncated, empty and refused responses produce distinct errors, with originals preserved.
 
 The provider sends one sequential request per episode with a 120-second request timeout. A 50-episode AI run can take several minutes. Providers returning Markdown rather than strict JSON produce an explicit episode error; outputs remain available for diagnosis. CLI exit code 2 means partial episode failure, 1 means input/configuration/output failure.
 

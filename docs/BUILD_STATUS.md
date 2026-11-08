@@ -3,7 +3,7 @@
 ## Verified
 
 - Dependency-free Python 3.10+ CLI and local browser server implemented.
-- 36 unit tests passed: 12 parser, 19 engine/provider-contract and 5 HTTP diagnostic tests.
+- 44 unit tests passed: 12 parser, 19 engine/provider-contract, 5 HTTP diagnostic and 8 model-output tests.
 - All 50 supplied episodes parsed: 3,727 timed events; no scene-bound warnings.
 - Offline baseline processed all 50 episodes without errors: 174 valid candidates, 10 selected after overlap suppression; 22 episodes had no baseline candidate. These are mechanical results, not editorial accuracy or recall measurements.
 - HTTP smoke test returned 200 for homepage, configuration, and synthetic-demo analysis (4 candidates, 1 distinct selected clip).
@@ -12,7 +12,7 @@
 
 ## Not yet verified
 
-- No live AI inference run: provider/model credentials or a local model must be configured. AI behavior was tested using explicit mock responses, including malformed output and failures.
+- A user-run synthetic Groq GPT-OSS 120B call authenticated successfully, but its original 1,800-token budget was exhausted before a final answer. The corrected request settings have automated coverage; a successful live rerun is still pending.
 - Visual browser testing could not run in the build environment: Chromium was blocked by its socket restrictions. Review layout and export buttons in your local browser.
 - No measured audience results; no claim of CTR uplift or comprehensive promo recall.
 - Final human editorial shortlist, two-page solution PDF and narrated walkthrough remain to be completed.
@@ -34,3 +34,7 @@ During AI-assisted implementation, code review found duration validation rounded
 ## HTTP diagnostics update
 
 The API client now identifies itself as PromoScout and exposes only predefined, safe error categories for permission denials, gateway 1010, authentication and rate limits. Provider error text and secrets are not echoed. Failed episodes are highlighted at the top of the UI rather than looking like a successful empty shortlist. These changes are regression-tested; the user must rerun the synthetic demo to verify the live connection.
+
+## Verified token-budget failure and fix
+
+The user-supplied demo export recorded `finish_reason: length`, empty final content, 1,800 completion tokens and 1,798 reasoning tokens. The default was too small for this reasoning model. The Groq GPT-OSS adapter now requests low reasoning effort, a 4,096-token completion budget and strict structured JSON. It recognizes truncation before attempting JSON parsing and preserves the original response. No reasoning text or private run file was copied into this repository. The actual captured response was replayed locally to verify the clearer error. A live success cannot be claimed until the user reruns the demo.
