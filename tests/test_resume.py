@@ -106,7 +106,7 @@ class RateLimitTests(unittest.TestCase):
         self.assertEqual(p.last_request, {'attempts': 2, 'rate_limit_wait_seconds': 3})
 
     def test_long_reset_does_not_wait_or_hammer_provider(self):
-        p = ChatProvider('https://example.com/api', 'model')
+        p = ChatProvider('https://example.com/api', 'model', max_rate_wait_seconds=120)
         opener = MagicMock()
         opener.open.side_effect = limited('3600')
         with patch('promo_finder.providers.urllib.request.build_opener', return_value=opener), patch('promo_finder.providers.time.sleep') as sleep:
@@ -125,6 +125,38 @@ class RateLimitTests(unittest.TestCase):
                 p.complete('prompt', {})
         self.assertNotIn('SECRET',str(caught.exception))
         self.assertNotIn('Provider asks',str(caught.exception))
+
+    def test_observed_299_second_limit_is_waited_automatically(self):
+        p = ChatProvider('https://example.com/api', 'model')
+        stream = MagicMock()
+        stream.__enter__.return_value.read.return_value = json.dumps(response()).encode()
+        opener = MagicMock()
+        opener.open.side_effect = [limited('299'),stream]
+        with patch('promo_finder.providers.urllib.request.build_opener', return_value=opener), patch('promo_finder.providers.time.sleep') as sleep:
+            self.assertEqual(p.complete('prompt', {}),response())
+        sleep.assert_called_once_with(299)
+        self.assertEqual(p.last_request['rate_limit_wait_seconds'],299)
+
+    def test_total_wait_budget_is_enforced_across_retries(self):
+        p = ChatProvider('https://example.com/api', 'model')
+        opener = MagicMock()
+        opener.open.side_effect = [limited('2000'),limited('2000')]
+        with patch('promo_finder.providers.urllib.request.build_opener', return_value=opener), patch('promo_finder.providers.time.sleep') as sleep:
+            with self.assertRaises(RateLimitError):
+                p.complete('prompt', {})
+        sleep.assert_called_once_with(2000)
+        self.assertEqual(opener.open.call_count,2)
+
+    def test_wait_budget_is_configurable_without_invalidating_checkpoints(self):
+        p = ChatProvider('https://example.com/api', 'model')
+        other = ChatProvider(p.url,p.model,max_rate_wait_seconds=120)
+        cache = ResponseCheckpoints('unused')
+        self.assertEqual(cache.key(p,'prompt',{}),cache.key(other,'prompt',{}))
+        with patch.dict('os.environ',{'PROMO_API_URL':p.url,'PROMO_MODEL':p.model,'PROMO_MAX_RATE_WAIT_SECONDS':'900'}):
+            self.assertEqual(ChatProvider.from_env().max_rate_wait_seconds,900)
+        for invalid in [True,-1,86401,120.5]:
+            with self.subTest(invalid=invalid),self.assertRaises(ValueError):
+                ChatProvider(p.url,p.model,max_rate_wait_seconds=invalid)
 
     def test_repeated_limits_stop_after_two_retries(self):
         p = ChatProvider('https://example.com/api', 'model')

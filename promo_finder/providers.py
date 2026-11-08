@@ -86,7 +86,8 @@ class NoRedirect(urllib.request.HTTPRedirectHandler):
 
 
 class ChatProvider:
-    def __init__(self, url, model, api_key='', style='compatible', timeout=120, max_output_tokens=4096):
+    def __init__(self, url, model, api_key='', style='compatible', timeout=120,
+                 max_output_tokens=4096, max_rate_wait_seconds=3600):
         parsed = urlparse(url)
         if parsed.scheme not in ('https','http') or not parsed.hostname or parsed.username or parsed.password:
             raise ValueError('Set a valid API endpoint URL without embedded credentials')
@@ -98,8 +99,11 @@ class ChatProvider:
             raise ValueError('Set PROMO_MODEL')
         if type(max_output_tokens) is not int or not 256 <= max_output_tokens <= 32768:
             raise ValueError('PROMO_MAX_OUTPUT_TOKENS must be an integer between 256 and 32768')
+        if type(max_rate_wait_seconds) is not int or not 0 <= max_rate_wait_seconds <= 86400:
+            raise ValueError('PROMO_MAX_RATE_WAIT_SECONDS must be an integer between 0 and 86400')
         self.url, self.model, self.api_key, self.style, self.timeout = url,model,api_key,style,timeout
         self.max_output_tokens = max_output_tokens
+        self.max_rate_wait_seconds = max_rate_wait_seconds
         self.groq_gpt_oss = (style == 'compatible' and parsed.hostname == 'api.groq.com'
                             and model in ('openai/gpt-oss-120b', 'openai/gpt-oss-20b'))
 
@@ -113,7 +117,12 @@ class ChatProvider:
             limit = int(os.environ.get('PROMO_MAX_OUTPUT_TOKENS', '4096'))
         except ValueError:
             raise ValueError('PROMO_MAX_OUTPUT_TOKENS must be an integer between 256 and 32768') from None
-        return cls(url,model,os.environ.get('PROMO_API_KEY',''),os.environ.get('PROMO_API_STYLE','compatible'),max_output_tokens=limit)
+        try:
+            wait_limit = int(os.environ.get('PROMO_MAX_RATE_WAIT_SECONDS', '3600'))
+        except ValueError:
+            raise ValueError('PROMO_MAX_RATE_WAIT_SECONDS must be an integer between 0 and 86400') from None
+        return cls(url,model,os.environ.get('PROMO_API_KEY',''),os.environ.get('PROMO_API_STYLE','compatible'),
+                   max_output_tokens=limit,max_rate_wait_seconds=wait_limit)
 
     def settings(self):
         """Safe, reproducible generation settings; excludes URL and credentials."""
@@ -148,8 +157,10 @@ class ChatProvider:
                 if exc.code == 429:
                     delay = retry_delay(exc.headers, attempt)
                     exc.close()
-                    if attempt < 2 and self.last_request['rate_limit_wait_seconds'] + delay <= 120:
+                    if attempt < 2 and self.last_request['rate_limit_wait_seconds'] + delay <= self.max_rate_wait_seconds:
                         self.last_request['rate_limit_wait_seconds'] += delay
+                        print(f'Provider rate limit: waiting {delay} seconds, then retrying automatically '
+                              f'({attempt + 1}/2). Keep the server running.', flush=True)
                         time.sleep(delay)
                         continue
                     hint = ''

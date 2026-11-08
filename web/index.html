@@ -66,7 +66,7 @@
     function base64File(file) { return new Promise((resolve,reject)=>{const reader=new FileReader();reader.onload=()=>resolve(String(reader.result).split(',')[1]);reader.onerror=()=>reject(new Error('The selected file could not be read.'));reader.readAsDataURL(file);}); }
     $('run-button').addEventListener('click',async()=>{
       state.busy=true;sync();message('');$('empty').hidden=true;$('results').hidden=true;$('loading').hidden=false;
-      const started=Date.now();$('loading-description').textContent=$('mode').value==='ai'?'Reviewing episodes. Large packs can take many minutes; temporary limits are retried automatically. Keep this page and the server open. Episode progress appears in the terminal.':'Finding candidates and checking their cut points.';
+      const started=Date.now();$('loading-description').textContent=$('mode').value==='ai'?'Reviewing episodes. Free-tier quota waits can take hours. The app waits and retries automatically; progress and wait times appear in Command Prompt. Keep this page open, the server running, and your computer awake.':'Finding candidates and checking their cut points.';
       $('loading-time').textContent='Starting analysis';
       const timer=setInterval(()=>$('loading-time').textContent=Math.round((Date.now()-started)/1000)+' seconds elapsed',1000);
       try{
